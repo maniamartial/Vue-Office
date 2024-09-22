@@ -29,6 +29,7 @@ export default {
   async mounted() {
     await this.fetchData();
   },
+  
   methods: {
     async fetchData() {
       const OFFICE_API = "https://platform.buildwithhussain.dev/api/method/get-office";
