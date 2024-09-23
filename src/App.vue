@@ -1,90 +1,127 @@
 <template>
-  <h1 class="m-6 text-blue-500 font-bold ">Trials</h1>
+  <h1 class="text-bold m-5">Show Todos</h1>
 
-<!-- <Badge status="inactive">
-inactive
-</Badge> -->
+  <!-- Button to open the dialog -->
+  <Button
+    @click="showDialog = true" 
+    :variant="'outline'"
+    theme="green"
+    size="sm"
+    label="Show Dialogue"
+    :loading="todoList.loading"
+    :loadingText="'Loading...'"
+    :disabled="todoList.loading"
+    class="m-5"
+  ></Button>
 
-<!-- <button class="bg-lime-800 bg-red text-lime-50 p-2 ml-2 rounded-md" @click="launchConfetti">Confettis</button> -->
+  <!-- Loading Text -->
+  <LoadingText v-if="todoList.loading" text="Loading..." />
 
-<Button @click="showDialog" class="bg-green-400">
-  Show Dialog
-</Button>
-<Dialog
-  :options="{
-    title: 'Confirm',
-    message: 'Are you sure you want to confirm this action?',
-    size: 'xl',
-    actions: [
-      {
-        label: 'Confirm',
-        variant: 'solid',
-        onClick: () => {
-         
-                },
-      },
-    ],
-  }"
-  v-model="dialog1"
-/>
+  <div v-else>
+    <p>No todos found.</p>
+  </div>
+
+  <!-- ListView to display data -->
+  <ListView
+    :options="{
+      selectable: false,
+      resizeColumn: true,
+      emptyState: {
+        title: 'No TODos found',
+        description: 'Create a new ToDo',
+        button: {
+          label: 'New record',
+          variant: 'solid',
+          onClick: () => console.log('New record')
+        }
+      }
+    }"
+    :columns="[
+      { label: 'Description', key: 'description' },
+      { label: 'Priority', key: 'priority' }
+    ]"
+    :rows="todoList.data" 
+  />
+
+  <!-- Frappe Dialog Component -->
+  <Dialog
+    v-model="showDialog"
+    title="New ToDo"
+    @close="showDialog = false"
+  >
+    <!-- Content of the dialog -->
+    <template #body-content>
+      <FormControl
+        label="Description"
+        :type="'textarea'"
+        size="sm"
+        v-model="inputValue"
+        placeholder="Enter description"
+      />
+    </template>
+
+    <!-- Actions/Buttons at the bottom of the dialog -->
+    <template #footer-content>
+      <Button
+        label="Save"
+        variant="solid"
+        @click="createTodo"
+      />
+    </template>
+  </Dialog>
+  <ErrorMessage :message="todoList.insert.error" />
 </template>
 
 <script>
-import List from "./List.vue"
-// import Badge from "./Badge.vue"
-import confetti from 'canvas-confetti'
-import {Badge, Button, Dialog} from 'frappe-ui';
+import { Button, LoadingText, ListView, Dialog, FormControl, ErrorMessage } from 'frappe-ui';
+import { createListResource } from 'frappe-ui';
+import {confetti} from 'canvas-confetti';
 
-
-export default{
-  components:{
-    List,
-    Badge,
+export default {
+  components: {
     Button,
+    LoadingText,
+    ListView,
     Dialog,
-
+    FormControl,
+    confetti,
+    ErrorMessage
   },
 
-  data(){
-      return{
-        myValue:'',
-        trial:'',
-        getPartner:'',
-        partner:['Mania', 'Malesi'],
-        dialog1: false, // Define the dialog state here
+  data() {
+    return {
+      todoList: createListResource({
+        doctype: "ToDo",
+        fields: ["name", "description", "priority"],
+        filters: { status: "Open" },
+        auto: true,
+        insert:{
+          onSuccess(){
+            confetti({
+              particleCount:1000,
+              spread: 70,
+              origin: { y: 0.6 }
+            });
+        }
 
-      }
-  },
-  
-
-  methods:{
-      launchConfetti(){
-        confetti({
-    particleCount: 100,
-    // angle: 120,
-    spread: 700,
-    origin: { x: 1 }
-  });
-      },
-
-      showDialog(){
-        dialog1=true;
-        console.log("hello")
-      }
+      }}),
+      showDialog: false,
+      inputValue: ""
+    };
   },
 
-
-  watch: {
-    myValue(newValue){
-      console.log("My value changes", newValue)
-    },
-    trial(newTrial){
-      console.log("Trial 2", newTrial)
-    },
-    getPartner(partner){
-      console.log("Its me",partner)
+  methods: {
+    async createTodo() {
+      // Add the new ToDo item with a description and priority
+      await this.todoList.insert({
+        description: this.inputValue,
+        priority: "High"
+      });
+      // Close the dialog
+      this.showDialog = false;
+      // Clear input after submission
+      this.inputValue = "";
     }
-    
   }
-}
+};
 </script>
